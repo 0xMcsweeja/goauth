@@ -19,11 +19,27 @@ type Handlers struct {
 func main() {
 	handler := newHandler()
 
-	http.HandleFunc("/", handler.get)
+	http.HandleFunc("/", handler.healthchecks)
 	http.HandleFunc("/dogs", handler.getDog)
+	http.HandleFunc("/token", Token)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func (h *Handlers) healthchecks(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		h.get(w, r)
+		return
+	case "POST":
+		h.get(w, r) //need to update for post
+		return
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method not allowed"))
+		return
 	}
 }
 
@@ -31,7 +47,8 @@ func (h *Handlers) get(w http.ResponseWriter, r *http.Request) {
 	healthcheck := h.store
 	jsonBytes, err := json.Marshal(healthcheck)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 	}
 	fmt.Fprintln(w, "%s", healthcheck)
 	w.Write(jsonBytes)
@@ -44,6 +61,8 @@ func (h *Handlers) getDog(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
 }
 
