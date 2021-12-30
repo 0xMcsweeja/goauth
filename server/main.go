@@ -44,6 +44,8 @@ func (h *Handlers) healthchecks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) get(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 2) //remove this - solely for concurrency testing
+
 	healthcheck := h.store
 	jsonBytes, err := json.Marshal(healthcheck)
 	if err != nil {
@@ -55,8 +57,9 @@ func (h *Handlers) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) getDog(w http.ResponseWriter, r *http.Request) {
-	healthcheck := "dogs here"
+	time.Sleep(time.Second * 2) //remove this - solely for concurrency testing
 
+	healthcheck := "dogs here"
 	jsonBytes, err := json.Marshal(healthcheck)
 	if err != nil {
 		panic(err)
