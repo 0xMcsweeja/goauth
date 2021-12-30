@@ -22,6 +22,7 @@ func main() {
 	http.HandleFunc("/", handler.healthchecks)
 	http.HandleFunc("/dogs", handler.getDog)
 	http.HandleFunc("/token", Token)
+	http.HandleFunc("/auth", Authorize)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)

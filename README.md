@@ -8,3 +8,14 @@ endpoints:
 - /token
 - /introspect
 - /refresh
+
+
+basic auth for the authentication is base64(admin:password). This will be moved to use asymmetric key flow.
+
+
+# TODO:
+- enrich token minting
+- introspection support
+- persistant storage
+- middleware tracing
+- fallthrough token validation
