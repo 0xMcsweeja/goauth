@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -15,20 +21,96 @@ type Status struct {
 type Handlers struct {
 	store map[string]Status
 }
+type ClientStore struct {
+	Store map[string]ClientStruct
+}
 
 func main() {
+	Store := new(ClientStore)
+	Store.Store = map[string]ClientStruct{}
+
 	handler := newHandler()
 
+	http.HandleFunc("/startup", func(w http.ResponseWriter, r *http.Request) {
+		Startup(w, r, Store)
+	})
+	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		Users(w, r, Store)
+	})
+	http.HandleFunc("/clients", func(w http.ResponseWriter, r *http.Request) {
+		Users(w, r, Store)
+	})
 	http.HandleFunc("/", handler.healthchecks)
 	http.HandleFunc("/dogs", handler.getDog)
 	http.HandleFunc("/token", Token)
 	http.HandleFunc("/auth", Authorize)
+	http.HandleFunc("/clientss", Client)
+
 	err := http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		panic(err)
 	}
-}
 
+	fmt.Println(Store)
+
+}
+func Clients(w http.ResponseWriter, r *http.Request, store *ClientStore) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	var client ClientStruct
+	err = json.Unmarshal(body, &client)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	jsonBytes, err := json.Marshal(client)
+	if err != nil {
+		panic(err)
+	}
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+func Users(w http.ResponseWriter, r *http.Request, store *ClientStore) {
+
+	jsonValue, err := json.Marshal(store)
+	if err != nil {
+		panic(err)
+	}
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonValue)
+
+}
+func hashToString(client ClientStruct) string {
+
+	h := sha1.New()
+	h.Write([]byte(client.Fname))
+	return hex.EncodeToString(h.Sum(nil))
+}
+func Startup(w http.ResponseWriter, r *http.Request, store *ClientStore) {
+
+	url := "http://localhost:8080/clients"
+	userpref := "user_"
+	for i := 0; i < 20; i++ {
+		var client ClientStruct
+		client.Fname = string(userpref + strconv.Itoa(i))
+		client.Lname = string(userpref + strconv.Itoa(i))
+		hashString := hashToString(client)
+		client.ID = hashString
+		store.Store[hashString] = client
+		jsonValue, _ := json.Marshal(client)
+		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+		if err != nil {
+			fmt.Fprint(os.Stderr, "fetch: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+}
 func (h *Handlers) healthchecks(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
