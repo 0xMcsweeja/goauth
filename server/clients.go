@@ -2,34 +2,53 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"log"
 	"net/http"
 )
 
+//add more properties for a client eg a key or password
+// implement a middleware/func that filters the properties based on something eg auth token
 type ClientStruct struct {
-	Fname string `json:"first_name"`
-	Lname string `json:"last_name"`
-	ID    string `json:"ID,omitempty"`
+	Fullname      string      `json:"Fullname,omitempty"`
+	Fname         string      `json:"First_Name,omitempty"`
+	Lname         string      `json:"Last_Name,omitempty"`
+	ID            string      `json:"ID,omitempty"`
+	Credentials   Credentials `json:"Credentials, omitempty"`
+	Authenticated bool        `json:"Authenticated,omitempty"`
 }
 
-func Client(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-	var client ClientStruct
-	err = json.Unmarshal(body, &client)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+type Credentials struct {
+	credential_type string `json:"credential_type,omitempty"`
+	secret          string `json:"secret,omitempty"`
+}
+
+func VisibleClientDetails(w http.ResponseWriter, r *http.Request, client ClientStruct) {
+	// if not not authenticated only return partial struct
+	//if client.Authenticated {
+	//	return &client
+	//}
+	if client.Authenticated {
+		jsonBytes, err := json.Marshal(client)
+		if err != nil {
+			log.Println("Couldn't parse client information")
+		}
+		w.Header().Add("content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonBytes)
+	} else {
+		redacted := ClientStruct{
+			Fullname:      client.Fullname,
+			ID:            client.ID,
+			Authenticated: false,
+		}
+
+		jsonBytes, err := json.Marshal(redacted)
+		if err != nil {
+			log.Println("Couldn't parse client information")
+		}
+		w.Header().Add("content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonBytes)
 	}
 
-	client.ID = "x[:]"
-
-	jsonBytes, err := json.Marshal(client)
-	if err != nil {
-		panic(err)
-	}
-	w.Header().Add("content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonBytes)
 }

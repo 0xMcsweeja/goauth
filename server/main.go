@@ -52,8 +52,13 @@ func main() {
 	})
 
 	router.Get("/users", func(w http.ResponseWriter, r *http.Request) {
-		jsonValue, _ := json.Marshal(Store.Store)
+
+		jsonValue, _ := json.Marshal(Store)
 		w.Write(jsonValue)
+
+	})
+	router.Get("/users/1", func(w http.ResponseWriter, r *http.Request) {
+		VisibleClientDetails(w, r, Store.Store["1"])
 
 	})
 
@@ -80,10 +85,11 @@ func generateUsers() *ClientStore {
 	}
 
 	for i := range shuffledFnames {
-		clients.Store[hashToString(i)] = ClientStruct{
-			Fname: fnames[i],
-			Lname: lnames[i],
-			ID:    hashToString(i),
+		clients.Store[strconv.Itoa(i)] = ClientStruct{
+			Fname:    shuffledFnames[i],
+			Lname:    shuffledLnames[i],
+			ID:       hashToString(i),
+			Fullname: shuffledFnames[i] + " " + shuffledLnames[i],
 		}
 	}
 	return clients
