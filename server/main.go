@@ -6,7 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,32 +32,62 @@ func main() {
 	Store := new(ClientStore)
 	Store.Store = map[string]ClientStruct{}
 
-	handler := newHandler()
-
-	http.HandleFunc("/startup", func(w http.ResponseWriter, r *http.Request) {
-		Startup(w, r, Store)
-	})
-	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		Users(w, r, Store)
-	})
-	http.HandleFunc("/clients", func(w http.ResponseWriter, r *http.Request) {
-		Users(w, r, Store)
-	})
-	http.HandleFunc("/", handler.healthchecks)
-	http.HandleFunc("/dogs", handler.getDog)
-	http.HandleFunc("/token", Token)
-	http.HandleFunc("/auth", Authorize)
-	http.HandleFunc("/clientss", Client)
-
-	err := http.ListenAndServe(":8080", nil)
-
-	if err != nil {
-		panic(err)
+	port := "8080"
+	if fromEnv := os.Getenv("PORT"); fromEnv != "" {
+		port = fromEnv
 	}
 
-	fmt.Println(Store)
+	log.Printf("Starting server  on http://localhost:%s", port)
 
+	router := chi.NewRouter()
+
+	//middleware stack
+	router.Use(middleware.Logger)
+	router.Use(middleware.Timeout(60 * time.Second))
+
+	//routes
+	router.Route("/token", func(router chi.Router) {
+		log.Printf("Route: http://localhost:%s", string(port)+"/token")
+		router.Get("/", Token)
+	})
+
+	//router.Route("/startup", func(w http.ResponseWriter, r *http.Request) {
+	//	router.Get("/", Startup(w, r, Store))
+	//})
+
+	http.ListenAndServe(":8080", router)
 }
+
+//func main() {
+//	Store := new(ClientStore)
+//	Store.Store = map[string]ClientStruct{}
+//
+//	handler := newHandler()
+//
+//	http.HandleFunc("/startup", func(w http.ResponseWriter, r *http.Request) {
+//		Startup(w, r, Store)
+//	})
+//	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+//		Users(w, r, Store)
+//	})
+//	http.HandleFunc("/clients", func(w http.ResponseWriter, r *http.Request) {
+//		Users(w, r, Store)
+//	})
+//	http.HandleFunc("/", handler.healthchecks)
+//	http.HandleFunc("/dogs", handler.getDog)
+//	http.HandleFunc("/token", Token)
+//	http.HandleFunc("/auth", Authorize)
+//	http.HandleFunc("/clientss", Client)
+//
+//	err := http.ListenAndServe(":8080", nil)
+//
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	fmt.Println(Store)
+//
+//}
 func Clients(w http.ResponseWriter, r *http.Request, store *ClientStore) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
