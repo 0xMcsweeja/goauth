@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,8 +29,7 @@ type ClientStore struct {
 }
 
 func main() {
-	Store := new(ClientStore)
-	Store.Store = map[string]ClientStruct{}
+	Store := generateUsers()
 
 	port := "8080"
 	if fromEnv := os.Getenv("PORT"); fromEnv != "" {
@@ -48,7 +47,14 @@ func main() {
 	//routes
 	router.Route("/token", func(router chi.Router) {
 		log.Printf("Route: http://localhost:%s", string(port)+"/token")
+
 		router.Get("/", Token)
+	})
+
+	router.Get("/users", func(w http.ResponseWriter, r *http.Request) {
+		jsonValue, _ := json.Marshal(Store.Store)
+		w.Write(jsonValue)
+
 	})
 
 	//router.Route("/startup", func(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +62,32 @@ func main() {
 	//})
 
 	http.ListenAndServe(":8080", router)
+}
+
+func generateUsers() *ClientStore {
+	clients := new(ClientStore)
+	clients.Store = make(map[string]ClientStruct)
+
+	fnames := []string{"Sleve", "Onson", "Darryl", "Anatoli", "Mario", "Kevin", "Mike", "Raul", "Willie", "Jeromy", "Scott", "Karl"}
+	lnames := []string{"McDichael", "Sweeney", "Smorin", "Truk", "Nogilniy", "Dandleton", "Rortugal", "McScriff", "Bonzalez", "Dugnutt", "Sernandez", "Marx"}
+	shuffledFnames := make([]string, len(fnames))
+	shuffledLnames := make([]string, len(fnames))
+	rand.Seed(time.Now().UTC().UnixNano())
+	perm := rand.Perm(len(fnames))
+	for i, v := range perm {
+		shuffledFnames[v] = fnames[i]
+		shuffledLnames[v] = lnames[i]
+	}
+
+	for i := range shuffledFnames {
+		clients.Store[hashToString(i)] = ClientStruct{
+			Fname: fnames[i],
+			Lname: lnames[i],
+			ID:    hashToString(i),
+		}
+	}
+	return clients
+
 }
 
 //func main() {
@@ -107,43 +139,14 @@ func Clients(w http.ResponseWriter, r *http.Request, store *ClientStore) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
 }
-func Users(w http.ResponseWriter, r *http.Request, store *ClientStore) {
 
-	jsonValue, err := json.Marshal(store)
-	if err != nil {
-		panic(err)
-	}
-	w.Header().Add("content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonValue)
-
-}
-func hashToString(client ClientStruct) string {
+func hashToString(client int) string {
 
 	h := sha1.New()
-	h.Write([]byte(client.Fname))
+	h.Write([]byte(strconv.Itoa(client)))
 	return hex.EncodeToString(h.Sum(nil))
 }
-func Startup(w http.ResponseWriter, r *http.Request, store *ClientStore) {
 
-	url := "http://localhost:8080/clients"
-	userpref := "user_"
-	for i := 0; i < 20; i++ {
-		var client ClientStruct
-		client.Fname = string(userpref + strconv.Itoa(i))
-		client.Lname = string(userpref + strconv.Itoa(i))
-		hashString := hashToString(client)
-		client.ID = hashString
-		store.Store[hashString] = client
-		jsonValue, _ := json.Marshal(client)
-		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
-		if err != nil {
-			fmt.Fprint(os.Stderr, "fetch: %v\n", err)
-			os.Exit(1)
-		}
-	}
-
-}
 func (h *Handlers) healthchecks(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
