@@ -18,8 +18,8 @@ type ClientStruct struct {
 }
 
 type Credentials struct {
-	credential_type string `json:"credential_type,omitempty"`
-	secret          string `json:"secret,omitempty"`
+	Credential_type string `json:"credential_type,omitempty"`
+	Secret          string `json:"secret,omitempty"`
 }
 
 func VisibleClientDetails(w http.ResponseWriter, r *http.Request, client ClientStruct) {

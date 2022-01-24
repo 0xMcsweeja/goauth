@@ -84,15 +84,15 @@ func generateUsers() *ClientStore {
 		shuffledLnames[v] = lnames[i]
 	}
 	creds := new(Credentials)
-	creds.credential_type = "shared_secret"
-	creds.secret = "shared_secret"
+	creds.Credential_type = "shared_secret"
+	creds.Secret = "shared_secret"
 	for i := range shuffledFnames {
 		clients.Store[strconv.Itoa(i)] = ClientStruct{
 			Fname:         shuffledFnames[i],
 			Lname:         shuffledLnames[i],
 			ID:            hashToString(i),
 			Fullname:      shuffledFnames[i] + " " + shuffledLnames[i],
-			Credentials:   creds,
+			Credentials:   *creds,
 			Authenticated: true,
 		}
 	}
