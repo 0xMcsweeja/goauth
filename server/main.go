@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
+	"main/models"
 	"math/rand"
 	"net/http"
 	"os"
@@ -72,7 +75,20 @@ func main() {
 func generateUsers() *ClientStore {
 	clients := new(ClientStore)
 	clients.Store = make(map[string]ClientStruct)
-
+	connectionString := "host=localhost user=postgres password=admin dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.Create(&models.User{
+		ID:        2,
+		Nickname:  "pendus",
+		Email:     "pendus@gmail",
+		Password:  "s2068202",
+		CreatedAt: time.Time{},
+		UpdatedAt: time.Time{},
+	})
+	db.Model(&models.User{}).Update("nickname", "mike")
 	fnames := []string{"Sleve", "Onson", "Darryl", "Anatoli", "Mario", "Kevin", "Mike", "Raul", "Willie", "Jeromy", "Scott", "Karl"}
 	lnames := []string{"McDichael", "Sweeney", "Smorin", "Truk", "Nogilniy", "Dandleton", "Rortugal", "McScriff", "Bonzalez", "Dugnutt", "Sernandez", "Marx"}
 	shuffledFnames := make([]string, len(fnames))
