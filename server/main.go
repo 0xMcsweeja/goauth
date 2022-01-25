@@ -68,50 +68,55 @@ func main() {
 	//router.Route("/startup", func(w http.ResponseWriter, r *http.Request) {
 	//	router.Get("/", Startup(w, r, Store))
 	//})
-
 	http.ListenAndServe(":8080", router)
 }
 
 func generateUsers() *ClientStore {
 	clients := new(ClientStore)
 	clients.Store = make(map[string]ClientStruct)
+
 	connectionString := "host=localhost user=postgres password=admin dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	db.AutoMigrate(models.User{})
+	db.AutoMigrate(models.Credentials{})
 	if err != nil {
 		panic("failed to connect database")
 	}
-	db.Create(&models.User{
-		ID:        2,
-		Nickname:  "pendus",
-		Email:     "pendus@gmail",
-		Password:  "s2068202",
-		CreatedAt: time.Time{},
-		UpdatedAt: time.Time{},
-	})
-	db.Model(&models.User{}).Update("nickname", "mike")
+
 	fnames := []string{"Sleve", "Onson", "Darryl", "Anatoli", "Mario", "Kevin", "Mike", "Raul", "Willie", "Jeromy", "Scott", "Karl"}
 	lnames := []string{"McDichael", "Sweeney", "Smorin", "Truk", "Nogilniy", "Dandleton", "Rortugal", "McScriff", "Bonzalez", "Dugnutt", "Sernandez", "Marx"}
 	shuffledFnames := make([]string, len(fnames))
 	shuffledLnames := make([]string, len(fnames))
 	rand.Seed(time.Now().UTC().UnixNano())
 	perm := rand.Perm(len(fnames))
+	perm2 := rand.Perm(len(fnames))
+
 	for i, v := range perm {
-		shuffledFnames[v] = fnames[i]
-		shuffledLnames[v] = lnames[i]
+		shuffledFnames[i] = fnames[v]
 	}
-	creds := new(Credentials)
+	for i, v := range perm2 {
+		shuffledLnames[i] = lnames[v]
+	}
+	creds := new(models.Credentials)
 	creds.Credential_type = "shared_secret"
 	creds.Secret = "shared_secret"
 	for i := range shuffledFnames {
-		clients.Store[strconv.Itoa(i)] = ClientStruct{
-			Fname:         shuffledFnames[i],
-			Lname:         shuffledLnames[i],
-			ID:            hashToString(i),
-			Fullname:      shuffledFnames[i] + " " + shuffledLnames[i],
-			Credentials:   *creds,
-			Authenticated: true,
+		if db.Model(&models.User{}).Where("ID = ?", uint32(i)).Updates(&models.User{
+			Nickname:  shuffledFnames[i],
+			Email:     shuffledLnames[i] + "@gmail.com",
+			Password:  shuffledFnames[i] + shuffledLnames[i],
+			CreatedAt: time.Time{},
+			UpdatedAt: time.Time{}, Credentials: *creds}).RowsAffected == 0 {
+			db.Create(&models.User{
+				Nickname:  shuffledFnames[i],
+				Email:     shuffledLnames[i] + "@gmail.com",
+				Password:  shuffledFnames[i] + shuffledLnames[i],
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{}, Credentials: *creds})
 		}
+
 	}
+
 	return clients
 
 }
