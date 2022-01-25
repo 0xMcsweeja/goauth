@@ -101,6 +101,8 @@ func generateUsers() *ClientStore {
 	creds.Credential_type = "shared_secret"
 	creds.Secret = "shared_secret"
 	for i := range shuffledFnames {
+		creds.Id = uint32(i)
+
 		if db.Model(&models.User{}).Where("ID = ?", uint32(i)).Updates(&models.User{
 			Nickname:  shuffledFnames[i],
 			Email:     shuffledLnames[i] + "@gmail.com",

@@ -13,12 +13,13 @@ type User struct {
 	Password    string      `gorm:"size:100;not null;" json:"password"`
 	CreatedAt   time.Time   `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt   time.Time   `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	Credentials Credentials `gorm:"foreignKey:Secret;references:ID" json:"credentials"`
+	Credentials Credentials `gorm:"foreignKey:Id;references:ID" json:"credentials"`
 }
 
 type Credentials struct {
-	Credential_type string `json:"credential_type,omitempty"`
-	Secret          string `json:"secret,omitempty"`
+	Credential_type string `gorm:"size:255;not null" json:"credential_type,omitempty"`
+	Secret          string `gorm:"size:255;not null" json:"secret,omitempty"`
+	Id              uint32 `gorm:"size:255;not null" json:"Id,omitempty"`
 }
 
 func (u *User) FindUserByID(db *gorm.DB, uid uint32) (*User, error) {
